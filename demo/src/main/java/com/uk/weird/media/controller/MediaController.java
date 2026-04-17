@@ -15,12 +15,23 @@ public class MediaController {
     private final MediaRepository mediaRepository;
 
     @PostMapping
-    public Media create(@RequestBody Media media) {
+    public Media createSingleMedia(@RequestBody Media media) {
         return mediaRepository.save(media);
     }
 
     @GetMapping
-    public List<Media> getAll() {
+    public List<Media> getAllMedia() {
         return mediaRepository.findAll();
     }
+
+    @PutMapping
+    public Media updateSingleMedia(@RequestBody Media media) {
+        return mediaRepository.save(media);
+    }
+
+    @DeleteMapping
+    public void deleteSingleMedia(@PathVariable Long id) {
+        mediaRepository.deleteById(id);
+    }
+
 }

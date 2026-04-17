@@ -1,20 +1,15 @@
 package com.uk.weird.media.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
+import jakarta.persistence.*;
+import lombok.*;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import java.time.Instant;
 
 @Entity
 @Table(name = "media")
 @Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Media {
@@ -26,7 +21,32 @@ public class Media {
     private String title;
 
     @Enumerated(EnumType.STRING)
-    private MediaType type;
+    @Column(name = "media_type")
+    private MediaType mediaType;
 
     private Integer releaseYear;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "cover_image_url")
+    private String coverImageUrl;
+
+    private Integer rating;
+    private String status;
+    private Integer progress;
+
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

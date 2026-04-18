@@ -1,7 +1,10 @@
 package com.uk.weird.media.controller;
 
+import com.uk.weird.media.dto.MediaReadDTO;
+import com.uk.weird.media.dto.MediaWriteDTO;
 import com.uk.weird.media.repository.MediaRepository;
 import com.uk.weird.media.entity.Media;
+import com.uk.weird.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,25 +16,34 @@ import java.util.List;
 public class MediaController {
 
     private final MediaRepository mediaRepository;
+    private final MediaService mediaService;
 
     @PostMapping
-    public Media createSingleMedia(@RequestBody Media media) {
-        return mediaRepository.save(media);
+    public MediaReadDTO createSingleMedia(@RequestBody MediaWriteDTO request) {
+        return mediaService.createMedia(request);
     }
 
     @GetMapping
-    public List<Media> getAllMedia() {
-        return mediaRepository.findAll();
+    public List<MediaReadDTO> returnAllMedia() {
+        return mediaService.getAllMedia();
     }
 
-    @PutMapping
-    public Media updateSingleMedia(@RequestBody Media media) {
-        return mediaRepository.save(media);
+    @GetMapping("/{id}")
+    public MediaReadDTO getSingleMediaById(@PathVariable Long id) {
+        return mediaService.getMediaById(id);
     }
 
-    @DeleteMapping
+    @PutMapping("/{id}")
+    public MediaReadDTO updateSingleMedia(
+            @PathVariable Long id,
+            @RequestBody MediaWriteDTO request) {
+        return mediaService.updateMedia(id, request);
+    }
+
+    @DeleteMapping("/{id}")
     public void deleteSingleMedia(@PathVariable Long id) {
-        mediaRepository.deleteById(id);
+        mediaService.deleteMedia(id);
     }
+
 
 }

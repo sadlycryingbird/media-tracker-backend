@@ -3,7 +3,6 @@ package com.uk.weird.media.controller;
 import com.uk.weird.media.dto.MediaReadDTO;
 import com.uk.weird.media.dto.MediaWriteDTO;
 import com.uk.weird.media.repository.MediaRepository;
-import com.uk.weird.media.entity.Media;
 import com.uk.weird.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +43,5 @@ public class MediaController {
     public void deleteSingleMedia(@PathVariable Long id) {
         mediaService.deleteMedia(id);
     }
-
 
 }

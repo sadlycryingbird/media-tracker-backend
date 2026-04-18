@@ -1,9 +1,11 @@
 package com.uk.weird.media.controller;
 
 import com.uk.weird.media.dto.DramaReadDTO;
+import com.uk.weird.media.dto.DramaSearchResultDTO;
 import com.uk.weird.media.dto.DramaWriteDTO;
 import com.uk.weird.media.repository.DramaRepository;
 import com.uk.weird.media.service.DramaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +20,8 @@ public class DramaController {
     private final DramaService dramaService;
 
     @PostMapping
-    public DramaReadDTO createSingleDrama(@RequestBody DramaWriteDTO request) {
-        return dramaService.createDrama(request);
+    public DramaReadDTO createDrama(@Valid @RequestBody DramaWriteDTO dto) {
+        return dramaService.createDrama(dto);
     }
 
     @GetMapping
@@ -30,6 +32,11 @@ public class DramaController {
     @GetMapping("/{id}")
     public DramaReadDTO getSingleDramaById(@PathVariable Long id) {
         return dramaService.getDramaById(id);
+    }
+
+    @GetMapping("/search")
+    public List<DramaSearchResultDTO> searchDrama(@RequestParam String query) {
+        return dramaService.searchExternal(query);
     }
 
     @PutMapping("/{id}")

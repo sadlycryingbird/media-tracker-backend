@@ -11,6 +11,8 @@ import java.util.List;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "drama")
 @Data
+@Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Drama {
@@ -19,7 +21,7 @@ public class Drama {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @OneToOne(optional = false)
     @JoinColumn(name = "media_id", nullable = false)
     private Media media;
 
@@ -41,5 +43,5 @@ public class Drama {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    private String externalId;
+    private Long externalId;
 }

@@ -2,9 +2,12 @@ package com.uk.weird.media.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
@@ -27,29 +30,38 @@ public class Media {
     @Column(name = "media_type", nullable = false)
     private MediaType mediaType;
 
+    @Column(nullable = false)
     private Integer releaseYear;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(name = "cover_image_url")
+    @Column(name = "cover_image_url", nullable = false)
     private String coverImageUrl;
 
+    private String posterUrl;
+
+    @Min(0)
+    @Max(10)
     private Integer rating;
+
     private String status;
+
+    @Min(0)
     private Integer progress;
 
-    private Instant createdAt;
-    private Instant updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = Instant.now();
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
+
 }

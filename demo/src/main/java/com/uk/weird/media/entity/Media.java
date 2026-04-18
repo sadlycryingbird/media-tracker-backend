@@ -18,10 +18,11 @@ public class Media {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "title", nullable = false)
     private String title;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "media_type")
+    @Column(name = "media_type", nullable = false)
     private MediaType mediaType;
 
     private Integer releaseYear;

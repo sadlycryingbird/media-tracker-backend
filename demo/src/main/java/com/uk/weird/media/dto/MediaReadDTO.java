@@ -4,9 +4,9 @@ import com.uk.weird.media.entity.MediaType;
 
 public record MediaReadDTO(
         Long id,
+        MediaType mediaType,
         String title,
         String description,
-        MediaType mediaType,
         Integer releaseYear,
         Integer rating,
         String status,

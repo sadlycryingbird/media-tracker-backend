@@ -6,15 +6,14 @@ import com.uk.weird.media.dto.DramaReadDTO;
 import com.uk.weird.media.entity.Drama;
 import com.uk.weird.media.entity.Media;
 import com.uk.weird.media.entity.MediaType;
-import com.uk.weird.media.external.tmdb.*;
 import com.uk.weird.media.mapper.DramaMapper;
+import com.uk.weird.media.provider.MediaDetails;
+import com.uk.weird.media.provider.MediaProvider;
 import com.uk.weird.media.repository.DramaRepository;
 import com.uk.weird.media.repository.MediaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -24,34 +23,16 @@ public class DramaService {
     private final DramaRepository dramaRepository;
     private final DramaMapper dramaMapper;
     private final MediaRepository mediaRepository;
-    private final WebClient tmdbClient;
+    private final MediaProvider mediaProvider;
 
     public DramaReadDTO createDrama(DramaWriteDTO request) {
 
-        // 1. Create Media with user fields
-        Media media = new Media();
-        media.setRating(request.rating());
-        media.setStatus(request.status());
-        media.setProgress(request.progress());
-        media.setMediaType(MediaType.DRAMA);
+        MediaDetails details = mediaProvider.getByExternalId(String.valueOf(request.externalId()));
 
-        // 2. Fetch metadata
-        TmdbDramaDetailsDTO meta = fetchMetadata(request.externalId());
-
-        // 3. Map metadata → Media
-        mapMetadataToMedia(meta, media);
-
+        Media media = buildMedia(details, request);
         Media savedMedia = mediaRepository.save(media);
 
-        // 4. Create Drama
-        Drama drama = dramaMapper.toEntity(request);
-        drama.setMedia(savedMedia);
-
-        // 5. Map metadata → Drama
-        mapMetadatatoEntity(meta, drama);
-        List<String> cast = fetchCast(request.externalId());
-        drama.setCast(cast);
-
+        Drama drama = buildDrama(details, savedMedia, request);
         Drama savedDrama = dramaRepository.save(drama);
 
         return dramaMapper.toReadDTO(savedDrama);
@@ -71,99 +52,16 @@ public class DramaService {
         return dramaMapper.toReadDTO(drama);
     }
 
-    private Integer extractYear(String date) {
-        if (date == null || date.isBlank()) return null;
-        return Integer.parseInt(date.substring(0, 4));
-    }
-
     public List<DramaSearchResultDTO> searchExternal(String query) {
 
-        TmdbSearchResponse response = tmdbClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .pathSegment("search", "tv")
-                        .queryParam("query", query)
-                        .build())
-                .retrieve()
-                .bodyToMono(TmdbSearchResponse.class)
-                .block();
-
-        return response.results().stream()
-                .map(r -> new DramaSearchResultDTO(
-                        r.id(),
-                        r.name(),
-                        r.overview(),
-                        r.posterPath() != null
-                                ? "https://image.tmdb.org/t/p/w500" + r.posterPath()
-                                : null,
-                        extractYear(r.firstAirDate())
+        return mediaProvider.search(query).stream()
+                .map(s -> new DramaSearchResultDTO(
+                        Long.valueOf(s.externalId()),
+                        s.title(),
+                        s.description(),
+                        s.posterUrl(),
+                        s.releaseYear()
                 ))
-                .toList();
-    }
-
-    public TmdbDramaDetailsDTO fetchMetadata(Long externalId) {
-        return tmdbClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .pathSegment("tv", externalId.toString())
-                        .build())
-                .retrieve()
-                .bodyToMono(TmdbDramaDetailsDTO.class)
-                .block();
-    }
-
-    private void mapMetadatatoEntity(TmdbDramaDetailsDTO meta, Drama drama) {
-
-        drama.setNumberOfEpisodes(meta.numberOfEpisodes());
-        drama.setCountry(meta.originCountry() != null && !meta.originCountry().isEmpty()
-                ? meta.originCountry().get(0)
-                : null);
-
-        drama.setNetwork(meta.networks() != null && !meta.networks().isEmpty()
-                ? meta.networks().get(0).name()
-                : null);
-
-        drama.setAiringStatus(meta.status());
-
-        drama.setStartDate(meta.firstAirDate() != null
-                ? LocalDate.parse(meta.firstAirDate())
-                : null);
-
-        drama.setEndDate(meta.lastAirDate() != null
-                ? LocalDate.parse(meta.lastAirDate())
-                : null);
-
-        if (meta.genres() != null) {
-            drama.setGenres(
-                    meta.genres().stream()
-                            .map(TmdbGenreDTO::name)
-                            .toList()
-            );
-        }
-    }
-
-    private void mapMetadataToMedia(TmdbDramaDetailsDTO meta, Media media) {
-
-        media.setTitle(meta.name());
-        media.setDescription(meta.overview());
-        media.setReleaseYear(extractYear(meta.firstAirDate()));
-
-        media.setCoverImageUrl(meta.posterPath() != null
-                ? "https://image.tmdb.org/t/p/w500" + meta.posterPath()
-                : null);
-    }
-
-    public List<String> fetchCast(Long externalId) {
-        TmdbCreditsResponse response = tmdbClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .pathSegment("tv", externalId.toString(), "credits")
-                        .build())
-                .retrieve()
-                .bodyToMono(TmdbCreditsResponse.class)
-                .block();
-
-        if (response == null || response.cast() == null) return List.of();
-
-        return response.cast().stream()
-                .map(TmdbCastDTO::name)
                 .toList();
     }
 
@@ -177,14 +75,38 @@ public class DramaService {
         media.setProgress(dto.progress());
         mediaRepository.save(media);
 
-        existing.setExternalId(dto.externalId());
-
-        Drama saved = dramaRepository.save(existing);
-        return dramaMapper.toReadDTO(saved);
+        return dramaMapper.toReadDTO(existing);
     }
 
     public void deleteDrama(Long id) {
         dramaRepository.deleteById(id);
+    }
+
+    private Media buildMedia(MediaDetails details, DramaWriteDTO request) {
+        Media media = new Media();
+        media.setMediaType(MediaType.DRAMA);
+        media.setTitle(details.title());
+        media.setDescription(details.description());
+        media.setReleaseYear(details.releaseYear());
+        media.setCoverImageUrl(details.posterUrl());
+        media.setRating(request.rating());
+        media.setStatus(request.status());
+        media.setProgress(request.progress());
+        return media;
+    }
+
+    private Drama buildDrama(MediaDetails details, Media savedMedia, DramaWriteDTO request) {
+        Drama drama = dramaMapper.toEntity(request);
+        drama.setMedia(savedMedia);
+        drama.setNumberOfEpisodes(details.numberOfEpisodes());
+        drama.setCountry(details.country());
+        drama.setNetwork(details.network());
+        drama.setGenres(details.genres());
+        drama.setCast(details.cast());
+        drama.setAiringStatus(details.airingStatus());
+        drama.setStartDate(details.startDate());
+        drama.setEndDate(details.endDate());
+        return drama;
     }
 
 }
